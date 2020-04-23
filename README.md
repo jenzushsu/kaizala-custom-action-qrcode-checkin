@@ -1,1 +1,1 @@
-# Kaizala Custom Action - Scanning OR code for location check-in
+# Using Kaizala to use QR Code for location check-in
