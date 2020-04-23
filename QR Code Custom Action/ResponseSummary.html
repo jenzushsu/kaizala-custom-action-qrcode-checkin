@@ -1,0 +1,368 @@
+<html>
+
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <title></title>
+  <style>
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, sans-serif;
+    }
+
+    b {
+      font-weight: 600
+    }
+
+    .first-column {
+      white-space: nowrap;
+    }
+
+    .comment-header {
+      padding: 12px;
+      font-size: 12px;
+      font-weight: 500;
+      color: #6f7e8f;
+    }
+
+    img {
+      object-fit: cover;
+      overflow: hidden;
+    }
+
+    img.hover-shadow {
+      transition: 0.3s
+    }
+
+    .cursor {
+      cursor: pointer
+    }
+
+    .hover-shadow:hover {
+      box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19)
+    }
+
+    .location-image {
+      width: 100%;
+      max-height: 180px;
+      object-fit: contain;
+      margin-bottom: "12px"
+    }
+
+    .location-address {
+      font-size: 16px;
+      padding: 12px;
+      padding-top: 0px;
+      font-weight: normal;
+      color: #32495f;
+      float: left;
+    }
+  </style>
+  <script type="text/javascript" src="KASClient.js"></script>
+
+  <script>
+    // Type aliases (short names)
+    var KASFormPageNavigator = KASClient.UI.KASFormPageNavigator;
+    var KASFormPage = KASClient.UI.KASFormPage;
+    var KASFormEmptyModule = KASClient.UI.KASFormEmptyModule;
+    var KASFormDetailsModule = KASClient.UI.KASFormDetailsModule;
+    var KASFormImageTitleSubtitleActionModule = KASClient.UI.KASFormImageTitleSubtitleActionModule;
+    var printf = KASClient.App.printf;
+
+    // Globals
+    var _form = null; // type: KASForm
+    var _myFormResponses; // type: Array<KASFormResponse>
+    var _creatorInfo; // type: KASUser
+    var _conversationName; // type: string
+    var _currentUserId; // type: string
+    var _pageNavigator = null; // type: KASFormPageNavigator
+    var _strings = null;
+
+    // Question index
+    var NAME = 0;
+    var PHONE_NUMBER = 1;
+    var LOCATION = 2;
+    var TIME = 3;
+
+    var _postalCode = "";
+    var _district = "";
+    var _longAddress = "";
+    var _shortAddress = "";
+
+    function inflateHeader() {
+      var header = document.getElementById("header");
+      KASClient.UI.clearElement(header);
+
+      var navigationBar = new KASClient.UI.KASFormPageNavigationBar();
+
+      navigationBar.iconPath = "AppIcon.png";
+
+      var mainText = KASClient.UI.getElement("div", {
+        "font-size": "18px",
+        "color": "#32495f",
+        "max-width": "300pt"
+      });
+      mainText.innerText = _strings["strMiniAppTitle"];
+
+      navigationBar.title = mainText.outerHTML;
+      var time = _myFormResponses.questionToAnswerMap[TIME];
+      var subText = KASClient.UI.getElement("div", {
+        "font-size": "9pt",
+        "color": "#727d88"
+      });
+      subText.innerText = printf(_strings["strMiniAppHeaderTimeLabel"], KASClient.getDateString(time, false, true));
+      navigationBar.subtitle = subText.outerHTML;
+
+      navigationBar.backAction = function () {
+        KASClient.App.dismissCurrentScreen();
+      };
+
+      KASClient.UI.addElement(navigationBar.getView(), header);
+    }
+
+    function showError(errorMsg) {
+      KASClient.App.showNativeErrorMessage(errorMsg);
+    }
+
+    function onPageLoad() {
+      // Uncomment to test with mock data
+      // KASClient.enableMockData();
+
+      // Global error handling
+
+      window.onerror = function (msg, url, line, col, error) {
+        // col & error are new to the HTML 5, so handling for them
+        var extra = (!col && col !== undefined) ? "" : "#column:" + col;
+        extra += (!error && error !== undefined) ? "" : "#error:" + error.stack;
+        var error = "Error:" + msg + "#url:" + url + "#line:" + line + extra;
+        KASClient.App.logError(error);
+      };
+
+      // Remove any existing pages, if any
+      if (_pageNavigator) {
+        _pageNavigator.popAllPages();
+        _pageNavigator = null;
+      }
+      KASClient.App.getLocalizedStringsAsync(function (strings, error) {
+        if (error != null) {
+          showAlert("Error:GetFormAsync:" + error);
+          return;
+        }
+        _strings = strings;
+        KASClient.Form.getFormAsync(function (form, error) {
+          if (error != null) {
+            handleError(error);
+            return;
+          }
+          _form = form;
+          KASClient.App.getCurrentUserIdAsync(function (userId, error) {
+            if (error != null) {
+              handleError(error);
+              return;
+            }
+            _currentUserId = userId;
+            KASClient.Form.getMyFormResponsesAsync(function (responses, error) {
+              if (error != null) {
+                handleError(error);
+                return;
+              }
+              _myFormResponses = responses[0];
+              KASClient.App.getUsersDetailsAsync([_currentUserId], function (users, error) {
+                if (error != null) {
+                  handleError(error);
+                  return;
+                }
+                _creatorInfo = users[_currentUserId];
+                KASClient.App.getConversationNameAsync(function (name, error) {
+                  if (error != null) {
+                    handleError(error);
+                    return;
+                  }
+                  _conversationName = name;
+                  showSummaryPage();
+                });
+              });
+            });
+          });
+        });
+      });
+    }
+
+    //////////////////////////////////////////
+    ////////////// ERROR SCREEN //////////////
+    //////////////////////////////////////////
+
+    function handleError(errorMsg) {
+      hideProgressBar();
+      showErrorScreen();
+    }
+
+    function showErrorScreen() {
+      if (_pageNavigator == null) {
+        _pageNavigator = new KASFormPageNavigator();
+        var container = document.getElementById("pageNavigator");
+        KASClient.UI.addElement(_pageNavigator.getView(), container);
+      }
+
+      var errorPage = new KASFormPage();
+      errorPage.navigationBar.iconPath = "AppIcon.png";
+      errorPage.navigationBar.title = _strings["strMiniAppTitle"];
+      errorPage.moduleContainer.backgroundColor = "white";
+
+      var emptyModule = new KASFormEmptyModule();
+      emptyModule.title = "Error";
+      emptyModule.subtitle = "Error";
+      if (!_pageNavigator.containsPages()) {
+        emptyModule.actionTitle = "Error";
+        emptyModule.action = onPageLoad;
+      }
+
+      errorPage.moduleContainer.addModule(emptyModule);
+
+      _pageNavigator.pushPage(errorPage);
+    }
+
+    ////////////////////////////////////////////
+    ////////////// SUMMARY SCREEN //////////////
+    ////////////////////////////////////////////
+
+    function inflateResponses() {
+
+      document.body.style.backgroundColor = "#f2f2f2";
+
+      var summaryView = document.getElementById("details");
+      KASClient.UI.clearElement(summaryView);
+
+      var divAttributes = {
+        "background-color": "white",
+        "color": "#32485f",
+        "font-size": "13.5pt",
+        "margin": "16px",
+        "margin-top": "8px",
+        "margin-bottom": "8px",
+        "box-shadow": "0px 0px 1px 0px rgba(0,0,0,0.12)",
+        "border-radius": "4px"
+      };
+
+      // Personal Details Summary
+      var detailsDiv = KASClient.UI.getElement("div", divAttributes);
+
+      var detailsHeader = KASClient.UI.getElement("div", {
+        "padding": "14px",
+        "padding-bottom": "0pt"
+      });
+      detailsHeader.className = "comment-header";
+      detailsHeader.innerText = _strings["strMiniAppYourDetails"];
+      KASClient.UI.addElement(detailsHeader, detailsDiv);
+
+      var details = KASClient.UI.getElement("table", {
+        "border": "none",
+        "padding": "14px",
+        "padding-top": "5pt",
+        "color": "#32485f",
+        "font-size": "12pt",
+        "overflow-wrap": "break-word",
+        "word-wrap": "break-word",
+        "word-break": "break-word"
+      });
+
+      var row1 = details.insertRow(0);
+      var cell11 = row1.insertCell(0);
+      var cell12 = row1.insertCell(1);
+      cell11.className = "first-column";
+      cell11.innerHTML = _strings[_form.questions[NAME].title];
+      cell12.innerHTML = ": " + _myFormResponses.questionToAnswerMap[NAME];
+
+      var row2 = details.insertRow(1);
+      var cell21 = row2.insertCell(0);
+      var cell22 = row2.insertCell(1);
+      cell21.className = "first-column";
+      cell21.innerHTML = _strings[_form.questions[PHONE_NUMBER].title];
+      cell22.innerHTML = ": " + _myFormResponses.questionToAnswerMap[PHONE_NUMBER];
+
+      KASClient.UI.addElement(details, detailsDiv);
+
+
+      var locationDetailsDiv = KASClient.UI.getElement("div", divAttributes);
+
+      var locationDetailsHeader = KASClient.UI.getElement("div");
+      locationDetailsHeader.className = "comment-header";
+      locationDetailsHeader.innerText = _strings[_form.questions[LOCATION].title];
+      KASClient.UI.addElement(locationDetailsHeader, locationDetailsDiv);
+
+      var location = KASClient.UI.getElement("div", {
+          "padding-bottom": "14px",
+          "padding-top": "14px"
+      });
+
+      var locationName = KASClient.UI.getElement("div", {
+          "padding": "14px",
+          "padding-top": "0pt",
+          "padding-bottom": "0pt",
+          "color": "#32485f",
+          "font-size": "12pt"
+      });
+
+      var _currentLocation = _myFormResponses.questionToAnswerMap[LOCATION];
+      locationName.innerHTML = _currentLocation;
+      KASClient.UI.addElement(locationName, location);
+
+      KASClient.UI.addElement(location, locationDetailsDiv);
+
+      KASClient.UI.addElement(detailsDiv, summaryView);
+      KASClient.UI.addElement(locationDetailsDiv, summaryView);
+
+    }
+
+    function showSummaryPage() {
+
+      inflateHeader();
+      inflateResponses();
+    }
+
+    function inflateLocation() {
+      var locationViewDiv = KASClient.UI.getElement("div");
+
+      //location map view
+      _currentLocation = _myFormResponses.questionToAnswerMap[LOCATION];
+
+      var locationAddress = KASClient.UI.getElement("label");
+      locationAddress.className = "location-address";
+
+      locationAddress.innerText = _currentLocation;
+
+      var locationAddressDiv = KASClient.UI.getElement("div", {
+        "float": "left",
+        "display": "flex",
+        "flex-direction": "column",
+        "width": "100%"
+      });
+
+      
+      KASClient.UI.addElement(locationAddressDiv, locationViewDiv);
+      return locationViewDiv;
+
+    }
+
+    function showError(errorMsg) {
+      hideProgressBar();
+      KASClient.App.showNativeErrorMessage(errorMsg);
+    }
+
+    function dismissCurrentScreen() {
+      KASClient.App.dismissCurrentScreen();
+    };
+  </script>
+</head>
+
+<body onload="onPageLoad()">
+  <div id="header">
+  </div>
+  <div class="section">
+    <div class="body-container">
+      <div id="details" style="padding-top: 50pt"></div>
+    </div>
+</body>
+
+</html>

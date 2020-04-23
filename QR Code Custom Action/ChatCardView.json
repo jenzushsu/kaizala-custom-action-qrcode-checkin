@@ -1,0 +1,38 @@
+{
+    "schemaVersion": 1,
+    "schema": {
+        "type": "container",
+        "initialHeight": 600,
+        "layout": "vertical",
+        "children": [
+            {
+                "type": "container",
+                "layout": "horizontal",
+                "marginBottom": 10,
+                "paddingLeft": 10,
+                "children": [
+                    {
+                        "type": "container",
+                        "layout": "vertical",
+                        "marginBottom": 10,
+                        "paddingLeft": 10,
+                        "children": [
+                            {
+                                "type": "text",
+                                "paddingTop": 5,
+                                "paddingLeft": 5,
+                                "paddingRight": 10,
+                                "string": "${MyLatestResponse.questionToAnswerMap[0]} has checked in @ ${MyLatestResponse.questionToAnswerMap[2]} at ${MyLatestResponse.questionToAnswerMap[3]}",
+                                "fontSize": 15,
+                                "textColor": "#32495f",
+                                "textAlignment": "left",
+                                "maxNumberOfLines": 2,
+                                "marginBottom": 2
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+}

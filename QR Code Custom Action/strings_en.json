@@ -1,0 +1,12 @@
+{
+	"strMiniAppTitle": "QR Code Check-in",
+	"Name": "Name",
+	"Phone No": "Phone Number",
+	"Location": "Check-in Location",
+	"Response Time": "Response Time",
+	"strMiniAppYourDetails": "Your Details",
+	"strRefreshLabel": "SCAN",
+	"strScanQRCodeLabel": "Please click 'Scan' to scan the QR Code",
+	"strMiniAppHeaderTimeLabel": "Created by you at {0}",
+	"strSendResponseLabel": "SUBMIT"
+}

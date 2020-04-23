@@ -1,0 +1,25 @@
+{
+  "title": "QR Code Check-in",
+  "visibility": "All",
+  "expiry": 4070908800000,
+  "isAnonymous": false,
+  "isResponseAppended": true,
+  "isLocationRequested": false,
+  "questions": [{
+      "title": "Name",
+      "type": "Text"
+    },
+    {
+      "title": "Phone No",
+      "type": "Text"
+    },
+    {
+      "title": "Location",
+      "type": "Text"
+    },
+    {
+      "title": "Response Time",
+      "type": "Text"
+    }
+  ]
+}
