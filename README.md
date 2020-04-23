@@ -1,0 +1,1 @@
+# kaizala-custom-action-qrcode-checkin
